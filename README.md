@@ -1,3 +1,3 @@
 # organizzazione dell'impresa
 
-## progetto di technology mapping si cloud e iot
+## progetto di technology mapping su cloud e iot
