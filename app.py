@@ -14,10 +14,11 @@ fields = {
     "Beneficiario": ["DENOMINAZIONE_BENEFICIARIO", "REGIONE_BENEFICIARIO", 
                      "DES_TIPO_BENEFICIARIO", "CODICE_FISCALE_BENEFICIARIO"],
     "Settore": ["COD_SETTORE", "DES_SETTORE"],
-    "Misura": ["TITOLO_MISURA", "DATA_INIZIO_MISURA", "DATA_FINE_MISURA", 
+    "Misura": ["CAR", "TITOLO_MISURA", "DATA_CONCESSIONE", 
                "COD_TIPO_MISURA", "DES_TIPO_MISURA"],
     "Aiuti": ["COD_OBIETTIVO", "DES_OBIETTIVO", "SETTORE_ATTIVITA"],
-    "Importo": ["ELEMENTO_DI_AIUTO", "IMPORTO_NOMINALE"]
+    "Importo": ["ELEMENTO_DI_AIUTO", "IMPORTO_NOMINALE",
+                "COD_STRUMENTO", "DES_STRUMENTO"]
 }
 
 # Flatten field list for column headers
@@ -51,11 +52,14 @@ def process_file(input_file, output_file, output_format='csv', limit=None):
     print(f"Processing file: {input_file}")
     start_time = datetime.now()
     
+    campi = input_file.split('.')[0].split('_')
+    mese = int(campi[3])
+    anno = int(campi[2])
     
     # Prepare output file
     if output_format == 'csv':
         with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=all_fields)
+            writer = csv.DictWriter(csvfile, fieldnames=all_fields + ['anno', 'mese'])
             writer.writeheader()
             
             # Process XML using iterparse to minimize memory usage
@@ -71,6 +75,8 @@ def process_file(input_file, output_file, output_format='csv', limit=None):
                     if tag in fields_in:
                         row[fields_in[tag]] = c.text
                 
+                row['anno'] = anno
+                row['mese'] = mese
                 writer.writerow(row)
                 
                 # Clear element to free memory
