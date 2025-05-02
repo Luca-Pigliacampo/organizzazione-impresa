@@ -35,11 +35,14 @@ def somma_attributi(r,oacc):
 
 def somma_parole(r,oacc):
     acc = oacc.copy()
-    for kw in r:
-        if kw in acc:
-            acc[kw] = somma_attributi(r[kw], acc[kw])
+    for w in r:
+        if w in acc:
+            acc[w] = {
+                    'apparenze': r[w]['apparenze'] + acc[w]['apparenze'],
+                    'coesistenze': somma_attributi(r[w]['coesistenze'], acc[w]['coesistenze'])
+            }
         else:
-            acc[kw] = r[kw]
+            acc[w] = r[w]
     return acc
 
 def mapstripsplit(x):
@@ -55,13 +58,13 @@ parole_chiave = {
 
 nonprintable = re.compile('[^A-Z0-9]+')
 
-def conteggia_parole_chiave(r, acc):
+def conteggia_parole_chiave(r, oacc):
+    acc = oacc.copy()
     testo = r['TITOLO_PROGETTO'].split() + r['DESCRIZIONE_PROGETTO'].split()
     testo = set(map(lambda x: nonprintable.sub('', x.upper()), testo))
-    if parole_chiave.intersection(testo):
-        return acc+1
-    else:
-        return acc
+    for kw in parole_chiave.intersection(testo):
+        acc[kw] += 1
+    return acc
 
 
 
@@ -75,36 +78,32 @@ def conteggia_parole_chiave(r, acc):
 def trova_parole_abbinate(r, oacc):
     acc = oacc.copy()
     testo = r['TITOLO_PROGETTO'].split() + r['DESCRIZIONE_PROGETTO'].split()
-    testo = set(filter(lambda q: len(q) > 3, map(lambda x: nonprintable.sub('', x.upper()), testo)))
+    testo = set(filter(lambda q: len(q) > 3 or q in parole_chiave, map(lambda x: nonprintable.sub('', x.upper()), testo)))
     t = testo.difference(parole_chiave)
-    for kw in parole_chiave:
-        if kw in testo:
-            if kw in acc:
-                for w in t:
-                    if w in acc[kw]:
-                        acc[kw][w] += 1
-                    else:
-                        acc[kw][w] = 1
-            else:
-                acc[kw] = {}
-                for w in t:
-                    acc[kw][w] = 1
-        else:
-            if kw in acc:
-                for w in t:
-                    if w in acc[kw]:
-                        acc[kw][w] -= 1
-                    else:
-                        acc[kw][w] = -1
-            else:
-                acc[kw] = {}
-                for w in t:
-                    acc[kw][w] = -1
+    for w in t:
+        if w not in acc:
+            acc[w] = {
+                    'apparenze': 0,
+                    'coesistenze': {}
+            }
+            for kw in parole_chiave:
+                acc[w]['coesistenze'][kw] = 0
+        acc[w]['apparenze'] += 1
+        for kw in parole_chiave.intersection(testo):
+            acc[w]['coesistenze'][kw] += 1
+
     return acc
             
 
 
 aggregazioni = [
+    {
+        'nome': 'parole chiave',
+        'partenza': {kw:0 for kw in parole_chiave},
+        'aggrega': conteggia_parole_chiave,
+        'post_aggrega': somma_attributi,
+        'preproc': lambda r: [r]
+    },
     {
         'nome': 'abbinamenti comuni',
         'partenza': {},
@@ -147,8 +146,13 @@ for agg in aggregazioni:
         res = agg['post_aggrega'](t[nome], res)
     out[nome] = res
 
-for w in out['abbinamenti comuni']:
-    out['abbinamenti comuni'][w] = sorted([(k,v) for k,v in out['abbinamenti comuni'][w].items()], key=lambda x:-(x[1]))[:32]
+parole = out['abbinamenti comuni']
+chiavi = out['parole chiave']
+
+risultato = {}
+for kw in parole_chiave:
+    temp = [(w,parole[w]['apparenze'],parole[w]['coesistenze'][kw]) for w in parole]
+    risultato[kw] = sorted(temp,key=lambda x: (x[2]/x[1])*(x[2]/chiavi[kw]))[-10:]
 
 with open(sys.argv[2], 'w') as of:
-    json.dump(out, of)
+    json.dump([chiavi,risultato], of)
