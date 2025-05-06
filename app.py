@@ -7,7 +7,8 @@ import gc
 import json
 from multiprocessing import Pool
 
-# Fields to extract
+
+# Campi da estrarre dai file XML, organizzati per categoria
 fields = {
     "Progetto": ["TITOLO_PROGETTO", "DESCRIZIONE_PROGETTO"],
     "Localizzazione": ["STATO_MEMBRO", "COD_AREA", "DES_AREA"],
@@ -21,20 +22,28 @@ fields = {
                 "COD_STRUMENTO", "DES_STRUMENTO"]
 }
 
-# Flatten field list for column headers
+# Crea una lista di tutti i campi da estrarre
 all_fields = []
 for category, category_fields in fields.items():
     all_fields.extend(category_fields)
 
+# Crea un dizionario per mappare i tag XML completi (con namespace) ai nomi dei campi
 fields_in = {}
 for f in all_fields:
     fields_in["{http://www.rna.it/RNA_aiuto/schema}"+f] = f
 
 
 def clear_element(element):
-    """Clear element to free memory"""
+    """Libera la memoria eliminando elementi XML già processati
+    
+    Args:
+        element: Elemento XML da eliminare dalla memoria
+        
+    Questa funzione è fondamentale per gestire file XML di grandi dimensioni
+    senza esaurire la memoria disponibile.
+    """
     element.clear()
-    # Also eliminate previous siblings to free memory
+    # Elimina anche i nodi fratelli precedenti per liberare memoria
     for ancestor in element.xpath('ancestor-or-self::*'):
         while ancestor.getprevious() is not None:
             del ancestor.getparent()[0]
@@ -48,45 +57,61 @@ def get_text_or_empty(element, xpath):
 """
 
 def process_file(input_file, output_file, output_format='csv', limit=None):
-    """Process a single XML file and extract the specified fields"""
+    """Processa un singolo file XML ed estrae i campi specificati
+    
+    Args:
+        input_file: Percorso del file XML di input
+        output_file: Percorso del file di output (CSV o JSON)
+        output_format: Formato del file di output ('csv' o 'json')
+        limit: Numero massimo di record da processare (None per processare tutto)
+        
+    Returns:
+        Numero di record processati
+        
+    Questa funzione analizza un file XML utilizzando un parser incrementale
+    per minimizzare l'uso della memoria, estrae i campi specificati e li salva
+    nel formato richiesto.
+    """
     print(f"Processing file: {input_file}")
     start_time = datetime.now()
     
+    # Estrae anno e mese dal nome del file
     campi = input_file.split('.')[0].split('_')
     mese = int(campi[3])
     anno = int(campi[2])
     
-    # Prepare output file
+     # Prepara il file di output
     if output_format == 'csv':
         with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=all_fields + ['anno', 'mese'])
             writer.writeheader()
             
-            # Process XML using iterparse to minimize memory usage
+             # Processa XML utilizzando iterparse per minimizzare l'uso della memoria
             count = 0
             for event, elem in etree.iterparse(input_file, events=('end',), tag="{http://www.rna.it/RNA_aiuto/schema}AIUTO"):
                 if limit and count >= limit:
                     break
                 
-                # Extract data
+                # Estrae i dati dai campi specificati
                 row = {}
                 for c in elem:
                     tag = c.tag
                     if tag in fields_in:
                         row[fields_in[tag]] = c.text
                 
+                #Aggiunge anno e mese al record
                 row['anno'] = anno
                 row['mese'] = mese
                 writer.writerow(row)
                 
-                # Clear element to free memory
+                # Libera memoria eliminando l'elemento XML già processato
                 clear_element(elem)
                 count += 1
                 
-                # Print progress every 1000 records
+                # Mostra il progresso ogni 1000 record
                 if count % 1000 == 0:
                     print(f"Processed {count} records...")
-                    # Explicitly trigger garbage collection
+                    # Attiva esplicitamente il garbage collector
                     gc.collect()
     else:
         raise ValueError(f"Unsupported output format: {output_format}")
@@ -97,17 +122,46 @@ def process_file(input_file, output_file, output_format='csv', limit=None):
     return count
 
 def procfile_bis(arg):
+    """Funzione wrapper per consentire l'elaborazione parallela
+    
+    Args:
+        arg: Tupla contenente (input_file, output_file)
+        
+    Returns:
+        Risultato della funzione process_file
+        
+    Questa funzione serve come wrapper per adattare la funzione process_file
+    all'interfaccia richiesta da multiprocessing.Pool.map.
+    """
     return process_file(arg[0],arg[1])
 
 def process_directory(input_dir, output_dir, output_format='csv', limit=None):
-    """Process all XML files in a directory"""
+    """Processa tutti i file XML in una directory utilizzando elaborazione parallela
+    
+    Args:
+        input_dir: Directory contenente i file XML da processare
+        output_dir: Directory dove salvare i file di output
+        output_format: Formato dei file di output ('csv' o 'json')
+        limit: Numero massimo di record da processare per file
+        
+    Returns:
+        Lista con i risultati dell'elaborazione di ciascun file
+        
+    Questa funzione utilizza un pool di processi (12) per elaborare più file
+    contemporaneamente, migliorando significativamente le prestazioni su
+    sistemi multicore.
+    """
+    # Trova tutti i file XML nella directory di input
     fnames = []
     for n in os.listdir(input_dir):
         if n.endswith('.xml'):
             fnames.append(n)
 
+    #Crea i percorsi completi per i file di input e output
     infiles = [os.path.join(input_dir, fn) for fn in fnames]
     outfiles = [os.path.join(output_dir, fn+"."+output_format) for fn in fnames]
+    
+    #Elanora i file in parallelo utilizzando un pool di 12 processi
     with Pool(12) as p:
         res = p.map( procfile_bis, zip(infiles, outfiles))
 #    res = list(map( profi, zip(infiles, outfiles)))
@@ -116,7 +170,12 @@ def process_directory(input_dir, output_dir, output_format='csv', limit=None):
 
 
 def main():
-    """Main function to handle command line arguments"""
+    """Funzione principale che gestisce gli argomenti da linea di comando
+    
+    Questa funzione analizza gli argomenti della riga di comando e avvia
+    l'elaborazione di un singolo file o di un'intera directory di file XML.
+    Supporta vari parametri come il formato di output e il limite di record.
+    """
     parser = argparse.ArgumentParser(description='Process XML files and extract specified fields')
     parser.add_argument('--input', required=True, help='Input file or directory')
     parser.add_argument('--output', required=True, help='Output file or directory')
@@ -125,6 +184,7 @@ def main():
     
     args = parser.parse_args()
     
+    #Determina se l'input è un file o una directory
     if os.path.isdir(args.input):
         process_directory(args.input, args.output, args.format, args.limit)
     else:
