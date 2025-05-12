@@ -47,6 +47,15 @@ def get_text_or_empty(element, xpath):
     return ""
 """
 
+def extract_elements(row, elem):
+    for c in elem:
+        tag = c.tag
+        if tag in fields_in:
+            row[fields_in[tag]] = c.text
+        else:
+            extract_elements(row, c)
+
+
 def process_file(input_file, output_file, output_format='csv', limit=None):
     """Process a single XML file and extract the specified fields"""
     print(f"Processing file: {input_file}")
@@ -70,10 +79,8 @@ def process_file(input_file, output_file, output_format='csv', limit=None):
                 
                 # Extract data
                 row = {}
-                for c in elem:
-                    tag = c.tag
-                    if tag in fields_in:
-                        row[fields_in[tag]] = c.text
+                extract_elements(row, elem)
+
                 
                 row['anno'] = anno
                 row['mese'] = mese
