@@ -361,6 +361,7 @@ def piu_aiuti_per_regione(dati):
     return risultati
 
 def aggrega_nace(r, oacc):
+    data = f"{r['anno']}_{int(r['mese']):02}"
     nace = r['SETTORE_ATTIVITA']
     regione = r['REGIONE_BENEFICIARIO']
     testo = r['TITOLO_PROGETTO'].split() + r['DESCRIZIONE_PROGETTO'].split()
@@ -368,32 +369,38 @@ def aggrega_nace(r, oacc):
     iot = parole_chiave_iot.intersection(testo)
     cloud = parole_chiave_cloud.intersection(testo)
     acc = oacc.copy()
-    if regione not in acc:
-        acc[regione] = {}
-    if nace not in acc[regione]:
-        acc[regione][nace] = {
+    if data not in acc:
+        acc[data] = {}
+    if regione not in acc[data]:
+        acc[data][regione] = {}
+    if nace not in acc[data][regione]:
+        acc[data][regione][nace] = {
                 'iot': 0,
                 'cloud': 0
         }
 
     if iot:
-        acc[regione][nace]['iot'] += 1
+        acc[data][regione][nace]['iot'] += 1
     if cloud:
-        acc[regione][nace]['cloud'] += 1
+        acc[data][regione][nace]['cloud'] += 1
 
     return acc
 
 def post_aggrega_nace(r, oacc):
     acc = oacc.copy()
-    for regione in r:
-        if regione not in acc:
-            acc[regione] = r[regione]
+    for data in r:
+        if data not in acc:
+            acc[data] = r[data]
         else:
-            for nace in r[regione]:
-                if nace not in acc[regione]:
-                    acc[regione][nace] = r[regione][nace]
+            for regione in r[data]:
+                if regione not in acc[data]:
+                    acc[data][regione] = r[data][regione]
                 else:
-                    acc[regione][nace] = somma_attributi(r[regione][nace],acc[regione][nace])
+                    for nace in r[data][regione]:
+                        if nace not in acc[data][regione]:
+                            acc[data][regione][nace] = r[data][regione][nace]
+                        else:
+                            acc[data][regione][nace] = somma_attributi(r[data][regione][nace],acc[data][regione][nace])
     return acc
 
 
@@ -411,18 +418,19 @@ def elabora_aiuti_nace(dati):
             'cloud': []
     }
     codici = {}
-    for regione in dati:
-        for codice in dati[regione]:
-            cc = codice.split('.')[0]
-            if cc == '-':
-                continue
-            if cc not in codici:
-                codici[cc] = {
-                        'iot': 0,
-                        'cloud': 0
-                }
-            codici[cc]['iot'] += dati[regione][codice]['iot']
-            codici[cc]['cloud'] += dati[regione][codice]['cloud']
+    for data in dati:
+        for regione in dati[data]:
+            for codice in dati[data][regione]:
+                cc = codice.split('.')[0]
+                if cc == '-':
+                    continue
+                if cc not in codici:
+                    codici[cc] = {
+                            'iot': 0,
+                            'cloud': 0
+                    }
+                codici[cc]['iot'] += dati[data][regione][codice]['iot']
+                codici[cc]['cloud'] += dati[data][regione][codice]['cloud']
     for cc in codici:
         risultati['codici'].append(cc)
         risultati['iot'].append(codici[cc]['iot'])
@@ -430,21 +438,35 @@ def elabora_aiuti_nace(dati):
     return risultati
 
 def elabora_massimi_aiuti_nace(dati):
+
+    regioni = {}
+    for data in dati:
+        for regione in dati[data]:
+            if regione not in regioni:
+                regioni[regione] = {}
+            for codice in dati[data][regione]:
+                if codice not in regioni[regione]:
+                    regioni[regione][codice] = {
+                            'iot':0,
+                            'cloud': 0
+                    }
+                regioni[regione][codice]['iot'] += dati[data][regione][codice]['iot']
+                regioni[regione][codice]['cloud'] += dati[data][regione][codice]['cloud']
     risultati = {}
 
     for regione in regioni_italiane:
-        if regione in dati:
+        if regione in regioni:
             cod_iot = None
             cod_cloud = None
             iot = None
             cloud = None
             risultati[regione]={}
-            for codice in dati[regione]:
-                if (not iot) or (dati[regione][codice]['iot'] > iot):
-                    iot = dati[regione][codice]['iot']
+            for codice in regioni[regione]:
+                if (not iot) or (regioni[regione][codice]['iot'] > iot):
+                    iot = regioni[regione][codice]['iot']
                     cod_iot = codice
-                if (not cloud) or (dati[regione][codice]['cloud'] > cloud):
-                    cloud = dati[regione][codice]['cloud']
+                if (not cloud) or (regioni[regione][codice]['cloud'] > cloud):
+                    cloud = regioni[regione][codice]['cloud']
                     cod_cloud = codice
             risultati[regione]['iot'] = {
                     'codice': cod_iot,
@@ -454,6 +476,41 @@ def elabora_massimi_aiuti_nace(dati):
                     'codice': cod_cloud,
                     'numero': cloud
             }
+    return risultati
+
+def elabora_aiuti_nei_mesi(dati):
+    risultati = {
+            'mesi':[],
+            'iot':[],
+            'cloud': []
+    }
+
+    periodi = {}
+    for mese in dati:
+        dat = [int(n) for n in mese.split('_')]
+        anno = dat[0]
+        q = (dat[1]+2)//3
+        periodo = f"{anno}"
+        iot = 0
+        cloud = 0
+        for regione in dati[mese]:
+            for codice in dati[mese][regione]:
+                iot += dati[mese][regione][codice]['iot']
+                cloud += dati[mese][regione][codice]['cloud']
+        if periodo not in periodi:
+            periodi[periodo] = {
+                    'iot': 0,
+                    'cloud': 0
+            }
+        periodi[periodo]['iot'] += iot
+        periodi[periodo]['cloud'] += cloud
+
+    lista = [(k, v['iot'], v['cloud']) for k,v in periodi.items()]
+    lista.sort()
+    for i in lista:
+        risultati['mesi'].append(i[0])
+        risultati['iot'].append(i[1])
+        risultati['cloud'].append(i[2])
     return risultati
 
 
@@ -492,11 +549,18 @@ aggregazioni = [
           'preproc': lambda r: espandi_lista(r, 'REGIONE_BENEFICIARIO', mapstripsplit)
       },
       {
-          'nome': 'aiuti per codice NACE per regione',
+          'nome': 'aiuti per codice NACE per regione per mese',
           'partenza': {},
           'aggrega': aggrega_nace,
           'post_aggrega': post_aggrega_nace,
           'preproc': preproc_nace
+      },
+      {
+          'nome': 'aiuti totali per anno',
+          'partenza': {},
+          'aggrega': lambda r, acc: conteggia_per_attributo(r, acc, 'anno'),
+          'post_aggrega': somma_attributi,
+          'preproc': lambda r: [r]
       }
 ]
 
@@ -523,13 +587,23 @@ elaborazioni = [
     },
     {
         'nome': 'aiuti per nace',
-        'input': 'aiuti per codice NACE per regione',
+        'input': 'aiuti per codice NACE per regione per mese',
         'func': elabora_aiuti_nace
     },
     {
         'nome': 'nace con piu aiuti',
-        'input': 'aiuti per codice NACE per regione',
+        'input': 'aiuti per codice NACE per regione per mese',
         'func': elabora_massimi_aiuti_nace
+    },
+    {
+        'nome': 'aiuti nei mesi',
+        'input': 'aiuti per codice NACE per regione per mese',
+        'func': elabora_aiuti_nei_mesi
+    },
+    {
+          'nome': 'aiuti totali per anno',
+          'input': 'aiuti totali per anno',
+          'func': lambda x:x
     }
 ]
 

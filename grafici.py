@@ -10,7 +10,9 @@ dati = [
     dati['imprese con iot e cloud'],
     dati['imprese per regione'],
     dati['imprese totali per regione'],
-    dati['aiuti per nace']
+    dati['aiuti per nace'],
+    dati['aiuti nei mesi'],
+    dati['aiuti totali per anno']
 ]
 
 fig,ax = plt.subplots()
@@ -75,5 +77,43 @@ ax.set_title('aiuti per nace')
 ax.set_yticks(x + width, codici)
 ax.legend(loc='upper left', ncols=3)
 
+fig,ax = plt.subplots()
+mesi = dati[4]['mesi']
+aiuti = {
+        'iot': dati[4]['iot'],
+        'cloud': dati[4]['cloud']
+}
+mesi.reverse()
+aiuti['iot'].reverse()
+aiuti['cloud'].reverse()
+
+x = np.arange(len(mesi))
+width = 0.4
+multiplier = 0
+for attribute, measurement in aiuti.items():
+    offset = width * multiplier
+    rects = ax.barh(x+ offset, measurement, width, label=attribute)
+    ax.bar_label(rects, padding=3)
+    multiplier += 1
+ax.set_title('aiuti iot e cloud per anno')
+ax.set_yticks(x + width, mesi)
+ax.legend(loc='upper left', ncols=3)
+
+
+fig,ax = plt.subplots()
+
+anni = []
+aiuti = []
+
+for y,a in sorted(list(dati[5].items())):
+    anni.append(y)
+    aiuti.append(a)
+
+anni.reverse()
+aiuti.reverse()
+
+rects = ax.barh(anni, aiuti)
+ax.bar_label(rects, padding=3)
+ax.set_title('aiuti per anno')
 
 plt.show()
