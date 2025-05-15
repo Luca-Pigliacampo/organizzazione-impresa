@@ -57,15 +57,6 @@ def somma_attributi(r,oacc):
             acc[attr] = r[attr]
     return acc
 
-def somma_parole(r,oacc):
-    acc = oacc.copy()
-    for kw in r:
-        if kw in acc:
-            acc[kw] = somma_attributi(r[kw], acc[kw])
-        else:
-            acc[kw] = r[kw]
-    return acc
-
 def mapstripsplit(x):
     res = map(lambda s: s.strip().upper(), x.split(','))
     return res
@@ -90,57 +81,6 @@ parole_chiave_cloud = {
 }
 
 nonprintable = re.compile('[^A-Z0-9]+')
-
-def conteggia_parole_chiave(r, acc):
-    testo = r['TITOLO_PROGETTO'].split() + r['DESCRIZIONE_PROGETTO'].split()
-    testo = set(map(lambda x: nonprintable.sub('', x.upper()), testo))
-    iot = parole_chiave_iot.intersection(testo)
-    cloud = parole_chiave_cloud.intersection(testo)
-    if iot and cloud:
-        return (acc[0] + 1, acc[1] + 1)
-    elif iot:
-        return (acc[0], acc[1] + 1)
-    elif cloud:
-        return (acc[0] + 1, acc[1])
-    else:
-        return acc
-
-def conteggia_aziende(r,oacc):
-
-    cf = r['CODICE_FISCALE_BENEFICIARIO']
-    if (not cf) or (cf in aziende_totali):
-        return oacc
-    else:
-        aziende_totali.add(cf)
-
-    acc = oacc.copy()
-    testo = r['TITOLO_PROGETTO'].split() + r['DESCRIZIONE_PROGETTO'].split()
-    testo = set(map(lambda x: nonprintable.sub('', x.upper()), testo))
-    iot = parole_chiave_iot.intersection(testo)
-    cloud = parole_chiave_cloud.intersection(testo)
-    if iot:
-        acc['iot'] += 1
-    if cloud:
-        acc['cloud'] += 1
-    if not (iot or cloud):
-        acc['nessuno'] += 1
-    acc['totali'] += 1
-
-    return acc
-
-def somma_somma_attributi(r,oacc):
-    acc = oacc.copy()
-    for attr in r:
-        if attr in acc:
-            acc[attr] = somma_attributi(acc[attr],r[attr])
-        else:
-            acc[attr] = r[attr]
-    return acc
-
-    
-
-
-aziende_totali = set()
 
 def regioni_per_mese(r, oacc):
     data = f"{r['anno']}_{int(r['mese']):02}"
@@ -194,32 +134,6 @@ def aggrega_regioni_per_mese(r, acc):
                             acc[data][regione][impresa]['numero_aiuti_cloud'] += r[data][regione][impresa]['numero_aiuti_cloud']
                             
     return acc
-
-def elabora_aiuti_per_regione_per_mese():
-    for data in out['imprese iot cloud per regione per mese']:
-        res[data] = {}
-        for regione in out['imprese iot cloud per regione per mese'][data]:
-            iot = 0
-            cloud = 0
-            entrambi = 0
-            nessuno = 0
-            for impresa in out['imprese iot cloud per regione per mese'][data][regione]:
-                i = out['imprese iot cloud per regione per mese'][data][regione][impresa]['iot']
-                c = out['imprese iot cloud per regione per mese'][data][regione][impresa]['cloud']
-                if i and c:
-                    entrambi += 1
-                elif i:
-                    iot += 1
-                elif c:
-                    cloud += 1
-                else:
-                    nessuno += 1
-            res[data][regione] = {
-                    'iot': iot,
-                    'cloud': cloud,
-                    'entrambi': entrambi,
-                    'nessuno': nessuno
-            }
 
 def elabora_imprese_iot_cloud(dati):
     imprese = {}
