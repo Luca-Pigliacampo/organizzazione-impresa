@@ -156,145 +156,6 @@ def aggrega_regioni_per_mese(r, acc):
                             
     return acc
 
-def elabora_imprese_iot_cloud(dati):
-    imprese = {}
-
-    for data in dati:
-        for regione in dati[data]:
-            for impresa in dati[data][regione]:
-                if impresa not in imprese:
-                    imprese[impresa] = {
-                        'iot': False,
-                        'cloud': False
-                    }
-                imprese[impresa]['iot'] |= dati[data][regione][impresa]['iot']
-                imprese[impresa]['cloud'] |= dati[data][regione][impresa]['cloud']
-
-    risultato = {
-        'iot': 0,
-        'cloud': 0,
-        'entrambi': 0,
-        'nessuno': 0
-    }
-
-    for impresa in imprese:
-        i = imprese[impresa]['iot']
-        c = imprese[impresa]['cloud']
-        if i and c:
-            risultato['entrambi'] += 1
-        elif i:
-            risultato['iot'] += 1
-        elif c:
-            risultato['cloud'] += 1
-        else:
-            risultato['nessuno'] += 1
-
-    return {
-        'tipi': list(risultato.keys()),
-        'quantita': list(risultato.values())
-    }
-
-def elabora_imprese_per_regione(dati):
-    regioni = {}
-    for data in dati:
-        for regione in dati[data]:
-            if regione not in regioni:
-                regioni[regione] = {}
-            for impresa in dati[data][regione]:
-                if impresa not in regioni[regione]:
-                    regioni[regione][impresa] = {
-                        'iot': False,
-                        'cloud': False
-                    }
-                regioni[regione][impresa]['iot'] |= dati[data][regione][impresa]['iot']
-                regioni[regione][impresa]['cloud'] |= dati[data][regione][impresa]['cloud']
-
-    risultati = {
-        'regioni': [],
-        'iot': [],
-        'cloud': [],
-        'entrambi': []
-    }
-
-    for regione in regioni_italiane:
-        if regione not in regioni:
-            continue
-        risultati['regioni'].append(regione)
-        iot = 0
-        cloud = 0
-        entrambi = 0
-        for impresa in regioni[regione]:
-            i = regioni[regione][impresa]['iot']
-            c = regioni[regione][impresa]['cloud']
-            if i and c:
-                entrambi += 1
-            elif i:
-                iot += 1
-            elif c:
-                cloud += 1
-
-        risultati['iot'].append(iot)
-        risultati['cloud'].append(cloud)
-        risultati['entrambi'].append(entrambi)
-    return risultati
-
-def elabora_imprese_totali_per_regione(dati):
-    regioni = {}
-    for data in dati:
-        for regione in dati[data]:
-            if regione not in regioni:
-                regioni[regione] = set()
-            for impresa in dati[data][regione]:
-                regioni[regione].add(impresa)
-    
-    risultati = {
-        'regioni': [],
-        'imprese': []
-    }
-
-    for regione in regioni_italiane:
-        if regione not in regioni:
-            continue
-        risultati['regioni'].append(regione)
-        risultati['imprese'].append(len(regioni[regione]))
-    return risultati
-
-def piu_aiuti_per_regione(dati):
-    regioni = {}
-    for data in dati:
-        for regione in dati[data]:
-            if regione not in regioni:
-                regioni[regione] = {}
-            for impresa in dati[data][regione]:
-                if impresa not in regioni[regione]:
-                    regioni[regione][impresa] = {
-                            'denominazione' : dati[data][regione][impresa]['denominazione'],
-                            'numero_aiuti_iot' : dati[data][regione][impresa]['numero_aiuti_iot'],
-                            'numero_aiuti_cloud' : dati[data][regione][impresa]['numero_aiuti_cloud']
-                    }
-                else:
-                    regioni[regione][impresa]['numero_aiuti_iot'] += dati[data][regione][impresa]['numero_aiuti_iot']
-                    regioni[regione][impresa]['numero_aiuti_cloud'] += dati[data][regione][impresa]['numero_aiuti_cloud']
-
-    risultati = {}
-    for regione in regioni_italiane:
-        if regione not in regioni:
-            continue
-        impresa_iot = None
-        impresa_cloud = None
-        for imp in regioni[regione]:
-            if not impresa_iot or impresa_iot['numero_aiuti_iot'] < regioni[regione][imp]['numero_aiuti_iot']:
-                impresa_iot = regioni[regione][imp]
-                impresa_iot['cf'] = imp
-            if not impresa_cloud or impresa_cloud['numero_aiuti_cloud'] < regioni[regione][imp]['numero_aiuti_cloud']:
-                impresa_cloud = regioni[regione][imp]
-                impresa_cloud['cf'] = imp
-        risultati[regione] = {
-                'iot': impresa_iot,
-                'cloud': impresa_cloud
-        }
-    return risultati
-
 def preproc_nace(r):
     rr = espandi_lista(r, 'SETTORE_ATTIVITA', mapstripsplit)
     res = []
@@ -415,6 +276,145 @@ def listicolo(dati, nk, n0, n1):
             n1: [dati[k][n1] for k in keys]
     }
     return res
+
+def elabora_imprese_iot_cloud(dati):
+    imprese = {}
+
+    for data in dati:
+        for regione in dati[data]:
+            for impresa in dati[data][regione]:
+                if impresa not in imprese:
+                    imprese[impresa] = {
+                        'iot': False,
+                        'cloud': False
+                    }
+                imprese[impresa]['iot'] |= dati[data][regione][impresa]['iot']
+                imprese[impresa]['cloud'] |= dati[data][regione][impresa]['cloud']
+
+    risultato = {
+        'iot': 0,
+        'cloud': 0,
+        'entrambi': 0,
+        'nessuno': 0
+    }
+
+    for impresa in imprese:
+        i = imprese[impresa]['iot']
+        c = imprese[impresa]['cloud']
+        if i and c:
+            risultato['entrambi'] += 1
+        elif i:
+            risultato['iot'] += 1
+        elif c:
+            risultato['cloud'] += 1
+        else:
+            risultato['nessuno'] += 1
+
+    return {
+        'tipi': list(risultato.keys()),
+        'quantita': list(risultato.values())
+    }
+
+def piu_aiuti_per_regione(dati):
+    regioni = {}
+    for data in dati:
+        for regione in dati[data]:
+            if regione not in regioni:
+                regioni[regione] = {}
+            for impresa in dati[data][regione]:
+                if impresa not in regioni[regione]:
+                    regioni[regione][impresa] = {
+                            'denominazione' : dati[data][regione][impresa]['denominazione'],
+                            'numero_aiuti_iot' : dati[data][regione][impresa]['numero_aiuti_iot'],
+                            'numero_aiuti_cloud' : dati[data][regione][impresa]['numero_aiuti_cloud']
+                    }
+                else:
+                    regioni[regione][impresa]['numero_aiuti_iot'] += dati[data][regione][impresa]['numero_aiuti_iot']
+                    regioni[regione][impresa]['numero_aiuti_cloud'] += dati[data][regione][impresa]['numero_aiuti_cloud']
+
+    risultati = {}
+    for regione in regioni_italiane:
+        if regione not in regioni:
+            continue
+        impresa_iot = None
+        impresa_cloud = None
+        for imp in regioni[regione]:
+            if not impresa_iot or impresa_iot['numero_aiuti_iot'] < regioni[regione][imp]['numero_aiuti_iot']:
+                impresa_iot = regioni[regione][imp]
+                impresa_iot['cf'] = imp
+            if not impresa_cloud or impresa_cloud['numero_aiuti_cloud'] < regioni[regione][imp]['numero_aiuti_cloud']:
+                impresa_cloud = regioni[regione][imp]
+                impresa_cloud['cf'] = imp
+        risultati[regione] = {
+                'iot': impresa_iot,
+                'cloud': impresa_cloud
+        }
+    return risultati
+
+def elabora_imprese_per_regione(dati):
+    regioni = {}
+    for data in dati:
+        for regione in dati[data]:
+            if regione not in regioni:
+                regioni[regione] = {}
+            for impresa in dati[data][regione]:
+                if impresa not in regioni[regione]:
+                    regioni[regione][impresa] = {
+                        'iot': False,
+                        'cloud': False
+                    }
+                regioni[regione][impresa]['iot'] |= dati[data][regione][impresa]['iot']
+                regioni[regione][impresa]['cloud'] |= dati[data][regione][impresa]['cloud']
+
+    risultati = {
+        'regioni': [],
+        'iot': [],
+        'cloud': [],
+        'entrambi': []
+    }
+
+    for regione in regioni_italiane:
+        if regione not in regioni:
+            continue
+        risultati['regioni'].append(regione)
+        iot = 0
+        cloud = 0
+        entrambi = 0
+        for impresa in regioni[regione]:
+            i = regioni[regione][impresa]['iot']
+            c = regioni[regione][impresa]['cloud']
+            if i and c:
+                entrambi += 1
+            elif i:
+                iot += 1
+            elif c:
+                cloud += 1
+
+        risultati['iot'].append(iot)
+        risultati['cloud'].append(cloud)
+        risultati['entrambi'].append(entrambi)
+    return risultati
+
+def elabora_imprese_totali_per_regione(dati):
+    regioni = {}
+    for data in dati:
+        for regione in dati[data]:
+            if regione not in regioni:
+                regioni[regione] = set()
+            for impresa in dati[data][regione]:
+                regioni[regione].add(impresa)
+    
+    risultati = {
+        'regioni': [],
+        'imprese': []
+    }
+
+    for regione in regioni_italiane:
+        if regione not in regioni:
+            continue
+        risultati['regioni'].append(regione)
+        risultati['imprese'].append(len(regioni[regione]))
+    return risultati
 
 
 elaborazioni = [
