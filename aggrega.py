@@ -5,7 +5,6 @@ import sys
 import json
 import re
 
-prefix = sys.argv[1]
 
 regioni_italiane = (
     "PROVINCIA AUTONOMA DI BOLZANO/BOZEN",
@@ -479,33 +478,38 @@ def leggifile(fname):
     f.close()
     return dati_aggregati
 
+def main():
+    prefix = sys.argv[1]
+    tuttifile = [os.path.join(prefix, nf) for nf in os.listdir(prefix)]
 
-tuttifile = [os.path.join(prefix, nf) for nf in os.listdir(prefix)]
+    with Pool(12) as p:
+        risultati_thread = p.map(leggifile, tuttifile)
 
-with Pool(12) as p:
-    risultati_thread = p.map(leggifile, tuttifile)
+    out = {}
 
-out = {}
-
-for agg in aggregazioni:
-    res = agg['partenza']
-    nome = agg['nome']
-    for t in risultati_thread:
-        res = agg['post_aggrega'](t[nome], res)
-    out[nome] = res
-
-
-risultati = {}
-
-for el in elaborazioni:
-    din = el['input']
-    if type(din) == type([]):
-        data = [out[d] for d in din]
-    else:
-        data = out[din]
-    risultati[el['nome']] = el['func'](data)
+    for agg in aggregazioni:
+        res = agg['partenza']
+        nome = agg['nome']
+        for t in risultati_thread:
+            res = agg['post_aggrega'](t[nome], res)
+        out[nome] = res
 
 
+    risultati = {}
 
-with open(sys.argv[2], 'w') as of:
-    json.dump(risultati, of)
+    for el in elaborazioni:
+        din = el['input']
+        if type(din) == type([]):
+            data = [out[d] for d in din]
+        else:
+            data = out[din]
+        risultati[el['nome']] = el['func'](data)
+
+
+
+    with open(sys.argv[2], 'w') as of:
+        json.dump(risultati, of)
+
+
+if __name__ == "__main__":
+    main()
