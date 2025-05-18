@@ -78,7 +78,19 @@ ax.set_yticks(x + width, codici)
 ax.legend(loc='upper left', ncols=3)
 
 fig,ax = plt.subplots()
-mesi = dati[4]['mesi']
+# Check for correct key name
+if 'mesi' in dati[4]:
+    mesi = dati[4]['mesi']
+elif 'mese' in dati[4]:
+    mesi = dati[4]['mese']
+elif 'anni' in dati[4]:
+    mesi = dati[4]['anni']
+else:
+    # Use first key that's not 'iot' or 'cloud' as labels
+    for key in dati[4].keys():
+        if key not in ['iot', 'cloud']:
+            mesi = dati[4][key]
+            break
 aiuti = {
         'iot': dati[4]['iot'],
         'cloud': dati[4]['cloud']

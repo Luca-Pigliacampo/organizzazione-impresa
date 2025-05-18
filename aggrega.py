@@ -462,7 +462,7 @@ elaborazioni = [
 
 def leggifile(fname):
     print(fname)
-    f = open(fname, 'r')
+    f = open(fname, 'r', encoding='utf-8')
 
     fif = csv.DictReader(f)
     dati_aggregati = {}
