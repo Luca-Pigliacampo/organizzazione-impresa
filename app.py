@@ -168,7 +168,7 @@ def process_directory(input_dir, output_dir, output_format='csv', limit=None):
     infiles = [os.path.join(input_dir, fn) for fn in fnames]
     outfiles = [os.path.join(output_dir, fn+"."+output_format) for fn in fnames]
     
-    #Elanora i file in parallelo utilizzando un pool di 12 processi
+    #Elabora i file in parallelo utilizzando un pool di 12 processi
     with Pool(12) as p:
         res = p.map( procfile_bis, zip(infiles, outfiles))
 #    res = list(map( profi, zip(infiles, outfiles)))
