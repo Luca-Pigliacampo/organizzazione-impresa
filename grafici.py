@@ -78,7 +78,7 @@ ax.set_yticks(x + width, codici)
 ax.legend(loc='upper left', ncols=3)
 
 fig,ax = plt.subplots()
-mesi = dati[4]['mesi']
+mesi = dati[4]['anni']
 aiuti = {
         'iot': dati[4]['iot'],
         'cloud': dati[4]['cloud']
