@@ -32,7 +32,7 @@ Una volta eseguito l'accesso, il programma presenta i seguenti file:
 
 * **[`parole_correlate.py`](./parole_correlate.py)**: analizza le correlazioni lessicali concentrandosi su parole quali *IoT*, *Cloud*, *Internet* e *Informatizzazione*. Il file individua pattern ricorrenti, co-occorrenze e associazioni semantiche utili per comprendere la diffusione e il contesto d’uso di questi concetti chiave nei dati analizzati. 
 
-> **NOTA**: Per il suo utilizzo è necessario avviare lo script con i seguenti parametri:
+> ⚠️ **NOTA**: Per il suo utilizzo è necessario avviare lo script con i seguenti parametri:
 <p align="center"><code>python parole_correlate.py &lt;cartella dei dati&gt; &lt;file risultati&gt;</code></p>
 
 * **[`aggrega.py`](./aggrega.py)**:  elabora i dati provenienti dai file CSV, selezionando e aggregando le informazioni più rilevanti rispetto a diverse dimensioni (come regione, anno/mese e settore NACE), e calcolando le relative statistiche.
@@ -43,7 +43,7 @@ Una volta eseguito l'accesso, il programma presenta i seguenti file:
 
 * **[`grafici.py`](./grafici.py)**: realizza dei grafici (come grafici a torta e istogrammi) a partire dai risultati estratti tramite lo script *[`aggrega.py`](./aggrega.py)* utilizzando la libreria **Matplotlib**.
 
-> ⚠️ **NOTE**: Per il suo utilizzo è necessario avviare lo script con i seguenti parametri:
+> ⚠️ **NOTA**: Per il suo utilizzo è necessario avviare lo script con i seguenti parametri:
 
 <p align="center"><code>python grafici.py  &lt;file risultati&gt;</code></p>
 
