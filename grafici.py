@@ -12,7 +12,9 @@ dati = [
     dati['imprese totali per regione'],
     dati['aiuti per nace'],
     dati['aiuti nei mesi'],
-    dati['aiuti totali per anno']
+    dati['aiuti totali per anno'],
+    dati['soldi nei mesi'],
+    dati['soldi totali per anno']
 ]
 
 fig,ax = plt.subplots()
@@ -80,23 +82,20 @@ ax.legend(loc='upper left', ncols=3)
 fig,ax = plt.subplots()
 mesi = dati[4]['anni']
 aiuti = {
-        'iot': dati[4]['iot'],
-        'cloud': dati[4]['cloud']
+        'iot': [x/1000 for x in dati[4]['iot']],
+        'cloud': [x/1000 for x in dati[4]['cloud']]
 }
-mesi.reverse()
-aiuti['iot'].reverse()
-aiuti['cloud'].reverse()
 
 x = np.arange(len(mesi))
 width = 0.4
 multiplier = 0
 for attribute, measurement in aiuti.items():
     offset = width * multiplier
-    rects = ax.barh(x+ offset, measurement, width, label=attribute)
+    rects = ax.bar(x+ offset, measurement, width, label=attribute)
     ax.bar_label(rects, padding=3)
     multiplier += 1
-ax.set_title('aiuti iot e cloud per anno')
-ax.set_yticks(x + width, mesi)
+ax.set_title('aiuti iot e cloud per anno (migliaia di aiuti)')
+ax.set_xticks(x + width, mesi)
 ax.legend(loc='upper left', ncols=3)
 
 
@@ -107,13 +106,52 @@ aiuti = []
 
 for y,a in sorted(list(dati[5].items())):
     anni.append(y)
-    aiuti.append(a)
+    aiuti.append(a/1000)
+
+
+rects = ax.bar(anni, aiuti)
+ax.bar_label(rects, padding=3)
+ax.set_title('aiuti per anno (migliaia di aiuti)')
+
+
+fig,ax = plt.subplots()
+mesi = dati[6]['anni']
+soldi = {
+        'iot': dati[6]['iot'],
+        'cloud': dati[6]['cloud']
+}
+mesi.reverse()
+soldi['iot'].reverse()
+soldi['cloud'].reverse()
+
+x = np.arange(len(mesi))
+width = 0.4
+multiplier = 0
+for attribute, measurement in soldi.items():
+    offset = width * multiplier
+    rects = ax.barh(x+ offset, measurement, width, label=attribute)
+    ax.bar_label(rects, padding=3)
+    multiplier += 1
+ax.set_title('soldi iot e cloud per anno')
+ax.set_yticks(x + width, mesi)
+ax.legend(loc='upper left', ncols=3)
+
+
+fig,ax = plt.subplots()
+
+anni = []
+soldi = []
+
+for y,a in sorted(list(dati[7].items())):
+    anni.append(y)
+    soldi.append(a)
 
 anni.reverse()
-aiuti.reverse()
+soldi.reverse()
 
-rects = ax.barh(anni, aiuti)
+rects = ax.barh(anni, soldi)
 ax.bar_label(rects, padding=3)
-ax.set_title('aiuti per anno')
+ax.set_title('soldi per anno')
+
 
 plt.show()
