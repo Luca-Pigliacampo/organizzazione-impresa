@@ -17,9 +17,9 @@ fields = {
     "Settore": ["COD_SETTORE", "DES_SETTORE"],
     "Misura": ["CAR", "TITOLO_MISURA", "DATA_CONCESSIONE", 
                "COD_TIPO_MISURA", "DES_TIPO_MISURA"],
-    "Aiuti": ["COD_OBIETTIVO", "DES_OBIETTIVO", "SETTORE_ATTIVITA"],
-    "Importo": ["ELEMENTO_DI_AIUTO", "IMPORTO_NOMINALE",
-                "COD_STRUMENTO", "DES_STRUMENTO"]
+    "Aiuti": ["COD_OBIETTIVO", "DES_OBIETTIVO", "SETTORE_ATTIVITA"]
+#    "Importo": ["ELEMENTO_DI_AIUTO", "IMPORTO_NOMINALE",
+#                "COD_STRUMENTO", "DES_STRUMENTO"]
 }
 
 # Crea una lista di tutti i campi da estrarre
@@ -92,7 +92,7 @@ def process_file(input_file, output_file, output_format='csv', limit=None):
      # Prepara il file di output
     if output_format == 'csv':
         with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=all_fields + ['anno', 'mese'])
+            writer = csv.DictWriter(csvfile, fieldnames=all_fields + ['IMPORTO_NOMINALE','ELEMENTO_DI_AIUTO'] + ['anno', 'mese'])
             writer.writeheader()
             
              # Processa XML utilizzando iterparse per minimizzare l'uso della memoria
@@ -104,6 +104,24 @@ def process_file(input_file, output_file, output_format='csv', limit=None):
                 # Estrae i dati dai campi specificati
                 row = {}
                 extract_elements(row, elem)
+
+                elemento_aiuto = 0
+                importo_nominale = 0
+
+                componenti = elem.find('{http://www.rna.it/RNA_aiuto/schema}COMPONENTI_AIUTO')
+
+                for comp in componenti.findall('{http://www.rna.it/RNA_aiuto/schema}COMPONENTE_AIUTO'):
+                    strumenti = comp.find('{http://www.rna.it/RNA_aiuto/schema}STRUMENTI_AIUTO')
+                    for strum in strumenti.findall('{http://www.rna.it/RNA_aiuto/schema}STRUMENTO_AIUTO'):
+                        elai = strum.find('{http://www.rna.it/RNA_aiuto/schema}ELEMENTO_DI_AIUTO')
+                        imno = strum.find('{http://www.rna.it/RNA_aiuto/schema}IMPORTO_NOMINALE')
+                        if elai != None:
+                            elemento_aiuto += float(elai.text)
+                        if imno != None:
+                            importo_nominale += float(imno.text)
+
+                row['IMPORTO_NOMINALE'] = importo_nominale
+                row['ELEMENTO_DI_AIUTO'] = elemento_aiuto
 
                 
                 #Aggiunge anno e mese al record
