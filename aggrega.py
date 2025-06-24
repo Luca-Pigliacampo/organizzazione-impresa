@@ -38,29 +38,39 @@ def espandi_lista(r, attr, proc_attr):
         res.append(r1)
     return res
 
-def conteggia(acc, gruppi):
+def conteggia(acc, gruppi, a):
     gr = gruppi[0]
     if len(gruppi) == 1:
         if gr not in acc:
             acc[gr] = 0
-        acc[gr] += 1
+        acc[gr] += a
     elif len(gruppi) > 1:
         if gr not in acc:
             acc[gr] = {}
-        conteggia(acc[gr], gruppi[1:])
+        conteggia(acc[gr], gruppi[1:], a)
     else:
         print("[conteggia] ERRORE: numero gruppi sbagliato", file=sys.stderr, flush=True)
 
-def conteggia_per_attributo(r, oacc, attr):
+def somma_aggregata_per_attributo(r, oacc, aggr, attr):
     gruppi = []
-    for a in attr:
+    for a in aggr:
         if callable(a):
             gruppi.append(a(r))
         else:
             gruppi.append(r[a])
+    a = None
+    if callable(attr):
+        a = attr(r)
+    elif attr in r:
+        a = r[attr]
+    else:
+        a = attr
     acc = oacc.copy()
-    conteggia(acc, gruppi)
+    conteggia(acc, gruppi, a)
     return acc
+
+def conteggia_per_attributo(r, oacc, attr):
+    return somma_aggregata_per_attributo(r,oacc,attr,1)
 
 def somma_attributi(r,oacc):
     acc = oacc.copy()
@@ -230,6 +240,55 @@ aggregazioni = [
             'aggrega': regioni_per_mese,
             'post_aggrega': aggrega_regioni_per_mese,
             'preproc': lambda r: espandi_lista(r, 'REGIONE_BENEFICIARIO', mapstripsplit)
+        },
+        {
+            'nome': 'soldi iot per anno',
+            'partenza': {str(a):0 for a in range(2014, 2026)},
+            'aggrega': lambda r, acc: somma_aggregata_per_attributo(r, acc, ['anno'], lambda x: float(x['ELEMENTO_DI_AIUTO'])),
+            'post_aggrega': somma_attributi,
+            'preproc': lambda r: filter(is_iot, preproc_nace(r))
+        },
+        {
+            'nome': 'soldi cloud per anno',
+            'partenza': {str(a):0 for a in range(2014, 2026)},
+            'aggrega': lambda r, acc: somma_aggregata_per_attributo(r, acc, ['anno'], lambda x: float(x['ELEMENTO_DI_AIUTO'])),
+            'post_aggrega': somma_attributi,
+            'preproc': lambda r: filter(is_cloud, preproc_nace(r))
+        },
+        {
+            'nome': 'soldi totali per anno',
+            'partenza': {},
+            'aggrega': lambda r, acc: somma_aggregata_per_attributo(r, acc, ['anno'], lambda x: float(x['ELEMENTO_DI_AIUTO'])),
+            'post_aggrega': somma_attributi,
+            'preproc': lambda r: [r]
+        },
+        {
+            'nome': 'soldi iot per nace per regione',
+            'partenza': {},
+            'aggrega': lambda r, acc: somma_aggregata_per_attributo(r, acc, ['REGIONE_BENEFICIARIO', 'SETTORE_ATTIVITA'], lambda x: float(x['ELEMENTO_DI_AIUTO'])),
+            'post_aggrega': somma_attributi,
+            'preproc': lambda r: filter(is_iot, preproc_nace(r))
+        },
+        {
+            'nome': 'soldi cloud per nace per regione',
+            'partenza': {},
+            'aggrega': lambda r, acc: somma_aggregata_per_attributo(r, acc, ['REGIONE_BENEFICIARIO', 'SETTORE_ATTIVITA'], lambda x: float(x['ELEMENTO_DI_AIUTO'])),
+            'post_aggrega': somma_attributi,
+            'preproc': lambda r: filter(is_cloud, preproc_nace(r))
+        },
+        {
+            'nome': 'soldi iot per nace',
+            'partenza': {},
+            'aggrega': lambda r, acc: somma_aggregata_per_attributo(r, acc, [lambda x: x['SETTORE_ATTIVITA'].split('.')[0]], lambda x: float(x['ELEMENTO_DI_AIUTO'])),
+            'post_aggrega': somma_attributi,
+            'preproc': lambda r: filter(is_iot, preproc_nace(r))
+        },
+        {
+            'nome': 'soldi cloud per nace',
+            'partenza': {},
+            'aggrega': lambda r, acc: somma_aggregata_per_attributo(r, acc, [lambda x: x['SETTORE_ATTIVITA'].split('.')[0]], lambda x: float(x['ELEMENTO_DI_AIUTO'])),
+            'post_aggrega': somma_attributi,
+            'preproc': lambda r: filter(is_cloud, preproc_nace(r))
         }
 ]
 
@@ -456,6 +515,26 @@ elaborazioni = [
             'nome': 'impresa con piu aiuti',
             'input': 'imprese iot cloud per regione per mese',
             'func': piu_aiuti_per_regione
+        },
+        {
+            'nome': 'soldi nei mesi',
+            'input': ['soldi iot per anno','soldi cloud per anno'],
+            'func': lambda x: listicolo(unisci_massime(1,x[0],'iot',x[1],'cloud'),'anni','iot','cloud')
+        },
+        {
+            'nome': 'soldi totali per anno',
+            'input': 'soldi totali per anno',
+            'func': lambda x:x
+        },
+        {
+            'nome': 'nace con piu soldi',
+            'input': ['soldi iot per nace per regione','soldi cloud per nace per regione'],
+            'func': lambda x: unisci_massime(1, seleziona_massime(x[0]),'iot',seleziona_massime(x[1]),'cloud')
+        },
+        {
+            'nome': 'soldi per nace',
+            'input': ['soldi iot per nace','soldi cloud per nace'],
+            'func': lambda x: listicolo(unisci_massime(1, x[0], 'iot', x[1], 'cloud'), 'codici', 'iot', 'cloud')
         }
 ]
 
