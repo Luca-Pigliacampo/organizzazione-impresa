@@ -28,9 +28,9 @@ fig,ax = plt.subplots()
 
 regioni = dati[1]['regioni']
 imprese = {
-    'iot':dati[1]['iot'],
-    'cloud':dati[1]['cloud'],
-    'entrambi':dati[1]['entrambi']
+    'iot':[v*100/dati[2]['imprese'][k] for k,v in enumerate(dati[1]['iot'])],
+    'cloud':[v*100/dati[2]['imprese'][k] for k,v in enumerate(dati[1]['cloud'])],
+    'entrambi':[v*100/dati[2]['imprese'][k] for k,v in enumerate(dati[1]['entrambi'])]
 }
 
 regioni.reverse()
@@ -46,25 +46,25 @@ for attribute, measurement in imprese.items():
     rects = ax.barh(x+ offset, measurement, width, label=attribute)
     ax.bar_label(rects, padding=3)
     multiplier += 1
-ax.set_title('imprese per regione')
+ax.set_title('imprese per regione riceventi aiuti su iot e cloud (% sul totale della regione)')
 ax.set_yticks(x + width, regioni)
 ax.legend(loc='upper left', ncols=3)
 
 
+#fig,ax = plt.subplots()
+#
+#dati[2]['regioni'].reverse()
+#dati[2]['imprese'].reverse()
+#ax.barh(dati[2]['regioni'], dati[2]['imprese'])
+
+
+
 fig,ax = plt.subplots()
 
-dati[2]['regioni'].reverse()
-dati[2]['imprese'].reverse()
-ax.barh(dati[2]['regioni'], dati[2]['imprese'])
-
-
-
-fig,ax = plt.subplots()
-
-codici = dati[3]['codici']
+codici = dati[3]['codici'][::-1]
 aiuti = {
-        'iot': dati[3]['iot'],
-        'cloud': dati[3]['cloud']
+        'iot': dati[3]['iot'][::-1],
+        'cloud': dati[3]['cloud'][::-1]
 }
 
 x = np.arange(len(codici))
